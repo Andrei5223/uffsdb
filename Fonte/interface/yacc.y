@@ -29,9 +29,7 @@ extern char* yytext[];
 extern FILE * yyin;
 extern FILE* outFile_p;
 
-int yywrap() {
-    return 1;
-}
+int inside_sql_command = 0; // Adicionando a variável para rastrear comandos SQL
 
 %}
 
@@ -52,7 +50,7 @@ int yywrap() {
         STRING      INDEX       ON;
 %%
 start: insert | select | create_table | create_database | drop_table | drop_database
-     | table_attr | list_tables | connection | exit_program | semicolon {GLOBAL_PARSER.consoleFlag = 1; return 0;}
+     | table_attr | list_tables | connection | exit_program | semicolon { inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; return 0; }
      | help_pls | list_databases | clear | contributors | create_index
      | qualquer_coisa | /*epsilon*/;
 
@@ -61,14 +59,14 @@ start: insert | select | create_table | create_database | drop_table | drop_data
 /*--------------------------------------------------*/
 
 /* CONNECTION */
-connection: CONNECT OBJECT {connect(*yytext); GLOBAL_PARSER.consoleFlag = 1; return 0;};
+connection: CONNECT OBJECT {connect(*yytext); inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; return 0;};
 
-qualquer_coisa: OBJECT {GLOBAL_PARSER.consoleFlag = 1; GLOBAL_PARSER.noerror = 0; return 0;};
+qualquer_coisa: OBJECT {inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; GLOBAL_PARSER.noerror = 0; return 0;};
 
 /* EXIT */
 exit_program: QUIT {exit(0);};
 
-clear: CLEAR {clear(); GLOBAL_PARSER.consoleFlag = 1; return 0;};
+clear: CLEAR {clear(); inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; return 0;};
 
 parentesis_open: ABRE_P {GLOBAL_PARSER.parentesis++;};
 
@@ -76,8 +74,9 @@ parentesis_close: FECHA_P {GLOBAL_PARSER.parentesis--;};
 
 /* TABLE ATTRIBUTES */
 table_attr: LIST_TABLE OBJECT {
-    if(connected.conn_active) {
+    if (connected.conn_active) {
         printTable(yylval.strval);
+        inside_sql_command = 0;
         GLOBAL_PARSER.consoleFlag = 1;
     } else
         notConnected();
@@ -86,8 +85,9 @@ table_attr: LIST_TABLE OBJECT {
 
 /* LIST TABLES */
 list_tables: LIST_TABLES {
-    if(connected.conn_active) {
+    if (connected.conn_active) {
         printTable(NULL);
+        inside_sql_command = 0;
         GLOBAL_PARSER.consoleFlag = 1;
     } else
         notConnected();
@@ -97,15 +97,16 @@ list_tables: LIST_TABLES {
 /* LIST DATABASES */
 list_databases: LIST_DBASES {
     showDB();
+    inside_sql_command = 0;
     GLOBAL_PARSER.consoleFlag = 1;
     return 0;
 }
 
 /* HELP */
-help_pls: HELP {help(); GLOBAL_PARSER.consoleFlag = 1; return 0;}
+help_pls: HELP {help(); inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; return 0;}
 
 /* CONTRIBUTORS */
-contributors: CONTR {contr(); GLOBAL_PARSER.consoleFlag = 1; return 0;}
+contributors: CONTR {contr(); inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; return 0;}
 
 /*--------------------------------------------------*/
 /****************** SQL STATEMENTS ******************/
@@ -117,8 +118,9 @@ insert: INSERT INTO {setMode(OP_INSERT);} table opt_column_list VALUES parentesi
         GLOBAL_DATA.N = GLOBAL_PARSER.val_count;
     else {
         printf("ERROR: The column counter doesn't match the value counter.\n");
-        GLOBAL_PARSER.noerror=0;
+        GLOBAL_PARSER.noerror = 0;
     }
+    inside_sql_command = 0;
     return 0;
 };
 
@@ -141,6 +143,7 @@ value: VALUE {setValueInsert(yylval.strval, 'D');}
 /* CREATE TABLE */
 create_table: CREATE TABLE {setMode(OP_CREATE_TABLE);} table parentesis_open table_column_attr parentesis_close semicolon {
     GLOBAL_DATA.N = GLOBAL_PARSER.col_count;
+    inside_sql_command = 0;
     return 0;
 };
 
@@ -162,17 +165,29 @@ table_fk: OBJECT {setColumnFKTableCreate(yytext);};
 column_fk: OBJECT {setColumnFKColumnCreate(yytext);};
 
 /* DROP TABLE */
-drop_table: DROP TABLE {setMode(OP_DROP_TABLE);} OBJECT {setObjName(yytext);} semicolon  {return 0;};
+drop_table: DROP TABLE {setMode(OP_DROP_TABLE);} OBJECT {setObjName(yytext);} semicolon  {
+    inside_sql_command = 0;
+    return 0;
+};
 
 /* CREATE DATABASE */
-create_database: CREATE DATABASE {setMode(OP_CREATE_DATABASE);} OBJECT {setObjName(yytext);} semicolon {return 0;};
+create_database: CREATE DATABASE {setMode(OP_CREATE_DATABASE);} OBJECT {setObjName(yytext);} semicolon {
+    inside_sql_command = 0;
+    return 0;
+};
 
 /* DROP DATABASE */
-drop_database: DROP DATABASE {setMode(OP_DROP_DATABASE);} OBJECT {setObjName(yytext);} semicolon {return 0;};
+drop_database: DROP DATABASE {setMode(OP_DROP_DATABASE);} OBJECT {setObjName(yytext);} semicolon {
+    inside_sql_command = 0;
+    return 0;
+};
 
 /* SELECT */
 select: SELECT {setMode(OP_SELECT); resetSelect();} projecao
-        FROM table_select where semicolon {return 0;};
+        FROM table_select where semicolon {
+    inside_sql_command = 0;
+    return 0;
+};
 
 table_select: OBJECT {adcTabelaSelect(yylval.strval);};
 
@@ -215,11 +230,11 @@ operando: sinal VALUE {adcTokenWhere(yylval.strval,9);} | sinal NUMBER {adcToken
 
 /* CREATE TABLE */
 create_index: CREATE INDEX ON {setMode(OP_CREATE_INDEX);} table parentesis_open atributo parentesis_close semicolon {
+    inside_sql_command = 0;
     return 0;
 };
 
 atributo: OBJECT {setColumnBtreeCreate(yytext);}
-
 
 
 /* END */

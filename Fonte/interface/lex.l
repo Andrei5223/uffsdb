@@ -11,43 +11,44 @@
 #endif
 #include "y.tab.h"
 #define YY_NO_INPUT
+extern int inside_sql_command;
 %}
 
 %option nounput
 
 %%
 
-(?i:INSERT)						return INSERT;
-(?i:INTO)						return INTO;
-(?i:VALUES)						return VALUES;
-(?i:SELECT)						return SELECT;
-(?i:FROM)						return FROM;
-(?i:WHERE)						return WHERE;
-(?i:CREATE)						return CREATE;
-(?i:TABLE)						return TABLE;
-(?i:ON)						    return ON;
-(?i:INDEX)						return INDEX;
-(?i:INTEGER)					return INTEGER;
-(?i:AND)					return LOGICO;
-(?i:OR)					return LOGICO;
-(?i:INT)						return INTEGER;
-(?i:VARCHAR)					return VARCHAR;
-(?i:CHAR)						return CHAR;
-(?i:DOUBLE)						return DOUBLE;
-(?i:PRIMARY)					return PRIMARY;
-(?i:KEY)						return KEY;
-(?i:REFERENCES)					return REFERENCES;
-(?i:DATABASE)					return DATABASE;
-(?i:DROP)						return DROP;
-(?i:CONTRIBUTORS)               return CONTR;
-help							return HELP;
-[\\][h]							return HELP;
-[\\][h]+[^\n]*					{invalidCommand(yytext);};
-[\\][\?]						return HELP;
-(?i:CLEAR)						return CLEAR;
+(?i:INSERT)                        { inside_sql_command = 1; return INSERT; }
+(?i:INTO)                          { inside_sql_command = 1; return INTO; }
+(?i:VALUES)                        { inside_sql_command = 1; return VALUES; }
+(?i:SELECT)                        { inside_sql_command = 1; return SELECT; }
+(?i:FROM)                          { inside_sql_command = 1; return FROM; }
+(?i:WHERE)                         { inside_sql_command = 1; return WHERE; }
+(?i:CREATE)                        { inside_sql_command = 1; return CREATE; }
+(?i:TABLE)                         { inside_sql_command = 1; return TABLE; }
+(?i:ON)                            { inside_sql_command = 1; return ON; }
+(?i:INDEX)                         { inside_sql_command = 1; return INDEX; }
+(?i:INTEGER)                       { inside_sql_command = 1; return INTEGER; }
+(?i:AND)                           { inside_sql_command = 1; return LOGICO; }
+(?i:OR)                            { inside_sql_command = 1; return LOGICO; }
+(?i:INT)                           { inside_sql_command = 1; return INTEGER; }
+(?i:VARCHAR)                       { inside_sql_command = 1; return VARCHAR; }
+(?i:CHAR)                          { inside_sql_command = 1; return CHAR; }
+(?i:DOUBLE)                        { inside_sql_command = 1; return DOUBLE; }
+(?i:PRIMARY)                       { inside_sql_command = 1; return PRIMARY; }
+(?i:KEY)                           { inside_sql_command = 1; return KEY; }
+(?i:REFERENCES)                    { inside_sql_command = 1; return REFERENCES; }
+(?i:DATABASE)                      { inside_sql_command = 1; return DATABASE; }
+(?i:DROP)                          { inside_sql_command = 1; return DROP; }
+(?i:CONTRIBUTORS)                  { inside_sql_command = 1; return CONTR; }
+help                               { inside_sql_command = 1; return HELP; }
+[\\][h]                            { inside_sql_command = 1; return HELP; }
+[\\][h]+[^\n]*                     { invalidCommand(yytext); };
+[\\][\?]                           { inside_sql_command = 1; return HELP; }
+(?i:CLEAR)                         { inside_sql_command = 1; return CLEAR; }
 
 [,]								return *yytext;
-[;]								return *yytext;
+[;]								{ if (inside_sql_command) return *yytext; else /* ignore */; }
 [-]								return *yytext;
 [+]								return *yytext;
 
