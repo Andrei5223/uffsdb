@@ -1204,4 +1204,24 @@ void createIndex(rc_insert *t) {
   printf("CREATE INDEX\n");
 }
 
+void begin_transaction(){
+  printf("BEGIN\n");
+  return;
+}  
+
+void end_transaction(){
+  printf("END\n");
+  return;
+}  
+
+void commit_transaction(){
+  printf("COMMIT\n");
+  return;
+}  
+
+void rollback_transaction(){
+  printf("ROLLBACK\n");
+  return;
+}  
+
 ///////

@@ -139,3 +139,11 @@ inf_where *novoResWhere(void *tk,int id);
 int verifyFieldName(char **, int );
 ////
 int verifyFK(char *, char *);
+
+int begin_transaction();
+
+int end_transaction();
+
+int commit_transaction();
+
+int rollback_transaction();

@@ -47,11 +47,13 @@ int inside_sql_command = 0; // Adicionando a variável para rastrear comandos SQ
         LIST_TABLES LIST_TABLE  CONNECT     HELP        LIST_DBASES
         CLEAR       CONTR       WHERE       OPERADOR    RELACIONAL
         LOGICO      ASTERISCO   SINAL       FECHA_P     ABRE_P
-        STRING      INDEX       ON;
+        STRING      INDEX       ON	    BEGIN_TRANSACTION       
+        END_TRANSACTION	        COMMIT_TRANSACTION      ROLLBACK_TRANSACTION;
 %%
 start: insert | select | create_table | create_database | drop_table | drop_database
-     | table_attr | list_tables | connection | exit_program | semicolon { inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; return 0; }
-     | help_pls | list_databases | clear | contributors | create_index
+     | table_attr | list_tables | connection | exit_program | semicolon {inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; return 0;}
+     | help_pls | list_databases | clear | contributors | create_index | begin_transaction
+     | commit_transaction | end_transaction | rollback_transaction |
      | qualquer_coisa | /*epsilon*/;
 
 /*--------------------------------------------------*/
@@ -234,8 +236,35 @@ create_index: CREATE INDEX ON {setMode(OP_CREATE_INDEX);} table parentesis_open 
     return 0;
 };
 
-atributo: OBJECT {setColumnBtreeCreate(yytext);}
+atributo: OBJECT {setColumnBtreeCreate(yytext);};
 
+begin_transaction: BEGIN_TRANSACTION {
+    begin_transaction(); 
+    inside_sql_command = 0;
+    GLOBAL_PARSER.consoleFlag = 1;
+    return 0;
+};
+
+commit_transaction: COMMIT_TRANSACTION{
+    commit_transaction();
+    inside_sql_command = 0;
+    GLOBAL_PARSER.consoleFlag = 1;
+    return 0;
+};  
+
+rollback_transaction: ROLLBACK_TRANSACTION{
+    rollback_transaction();
+    inside_sql_command = 0;
+    GLOBAL_PARSER.consoleFlag = 1;
+    return 0;
+};
+
+end_transaction: END_TRANSACTION{
+    end_transaction();
+    inside_sql_command = 0;
+    GLOBAL_PARSER.consoleFlag = 1;
+    return 0;
+};
 
 /* END */
 %%

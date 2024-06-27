@@ -46,6 +46,10 @@ help                               { inside_sql_command = 1; return HELP; }
 [\\][h]+[^\n]*                     { invalidCommand(yytext); };
 [\\][\?]                           { inside_sql_command = 1; return HELP; }
 (?i:CLEAR)                         { inside_sql_command = 1; return CLEAR; }
+(?i:BEGIN)						   { inside_sql_command = 1; return BEGIN_TRANSACTION; }
+(?i:END)						   { inside_sql_command = 1; return END_TRANSACTION; }
+(?i:COMMIT)						   { inside_sql_command = 1; return COMMIT_TRANSACTION; }
+(?i:ROLLBACK)					   { inside_sql_command = 1; return ROLLBACK_TRANSACTION; }
 
 [,]								return *yytext;
 [;]								{ if (inside_sql_command) return *yytext; else /* ignore */; }
