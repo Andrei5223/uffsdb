@@ -140,10 +140,33 @@ int verifyFieldName(char **, int );
 ////
 int verifyFK(char *, char *);
 
+/*
+  Lê fs_object.dat do banco para identificar as tabelas existentes
+  Para cada tabela existente escreve num log a posição de fim de arquivo dos dados daquela tabela
+    Se o log nao existe, cria um
+*/
+void log_update();
+
+/*
+  Inicia uma transação
+  Executa log_update
+*/
 int begin_transaction();
 
+/*
+  Finaliza a transação corrente
+  Deleta o log
+*/
 int end_transaction();
 
+/*
+  Executa log_update
+*/
 int commit_transaction();
 
+/*
+  Executa na inicialização do SGBD, para todos os bancos existentes
+  Finaliza a transação corrente (se existir)
+  Restaura os .dat das tabelas para as posições salvas no log
+*/
 int rollback_transaction();
