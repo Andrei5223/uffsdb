@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h> 
+
 ////
 #ifndef FBTREE // includes only if this flag is not defined (preventing duplication)
    #include "btree.h"
@@ -1204,22 +1206,133 @@ void createIndex(rc_insert *t) {
   printf("CREATE INDEX\n");
 }
 
+void rollback_db(){
+  FILE *logFile;
+  struct log_entry logEntry;
+  char dir[LEN_DB_NAME_IO + TAMANHO_NOME_ARQUIVO];
+
+  // Abrir o arquivo log.dat para leitura
+  strcpy(dir, connected.db_directory);
+  strcat(dir, "log.dat");
+  logFile = fopen(dir, "rb");
+  if (logFile == NULL) {
+      // Caso não exista log.dat, então não há nada para dar rollback
+      return;
+  }
+
+  // Ler cada entrada do arquivo log.dat
+  while (fread(&logEntry, sizeof(struct log_entry), 1, logFile)) {
+      // Tentar abrir o arquivo correspondente
+      strcpy(dir, connected.db_directory);
+      strcat(dir, logEntry.nomeArquivo);
+      FILE *dataFile = fopen(dir, "r+b");
+      if (dataFile == NULL) {
+          // Caso não exista o arquivo de dados da tabela, significa que ela sofreu um DROP, isso está além da cobertura da transação
+          continue; // Tentar próximo arquivo
+      }
+
+      // Verificar se o tamanho especificado é 0
+      if (logEntry.tamanhoArquivo == 0) {
+          fclose(dataFile);
+          unlink(dir); //deleta o arquivo de dados da tabela
+      } else {
+          // Navegar até o tamanho especificado e truncar o arquivo, deletando os dados extras
+          fseek(dataFile, logEntry.tamanhoArquivo, SEEK_SET);
+          ftruncate(fileno(dataFile), logEntry.tamanhoArquivo);
+          
+          fclose(dataFile);
+      }
+  }
+
+  // Fechar o arquivo log.dat
+  fclose(logFile);
+}
+
+void log_delete(){
+  char dir[LEN_DB_NAME_IO + TAMANHO_NOME_ARQUIVO];
+  strcpy(dir, connected.db_directory);
+  strcat(dir, "log.dat");
+  unlink(dir);
+}
+
+void log_update(){
+  FILE *file, *logFile, *dataFile;
+  struct fs_objects fsObj;
+  struct log_entry logEntry;
+  long fileSize;
+  char dir[LEN_DB_NAME_IO + TAMANHO_NOME_ARQUIVO];
+
+  // Abrir o arquivo fs_object.dat
+  strcpy(dir, connected.db_directory);
+  strcat(dir, "fs_object.dat");
+  file = fopen(dir, "rb");
+  if (file == NULL) {
+      printf("Erro ao abrir o arquivo fs_object.dat\n");
+      return;
+  }
+
+  // Abrir o arquivo log.dat
+  strcpy(dir, connected.db_directory);
+  strcat(dir, "log.dat");
+  logFile = fopen(dir, "wb");
+  if (logFile == NULL) {
+      printf("Erro ao criar o arquivo log.dat\n");
+      fclose(file);
+      return;
+  }
+
+  // Ler cada registro do arquivo fs_object.dat
+  while (fread(&fsObj, sizeof(struct fs_objects), 1, file)) {
+      // Inicializar a entrada de log
+      strncpy(logEntry.nomeArquivo, fsObj.nArquivo, TAMANHO_NOME_ARQUIVO);
+      logEntry.tamanhoArquivo = 0; // Valor padrão
+
+      // Tentar abrir o arquivo nArquivo
+      strcpy(dir, connected.db_directory);
+      strcat(dir, fsObj.nArquivo);
+      dataFile = fopen(dir, "rb");
+      if (dataFile != NULL) {
+          // Navegar até o fim do arquivo e obter o tamanho
+          fseek(dataFile, 0, SEEK_END);
+          fileSize = ftell(dataFile);
+          fclose(dataFile);
+
+          // Atualizar o tamanho do arquivo no logEntry
+          logEntry.tamanhoArquivo = fileSize;
+      }
+
+      // Escrever a entrada de log no arquivo log.dat
+      fwrite(&logEntry, sizeof(struct log_entry), 1, logFile);
+  }
+
+  // Fechar os arquivos abertos
+  fclose(file);
+  fclose(logFile);
+
+  return;
+}
+
 void begin_transaction(){
+  log_update();
   printf("BEGIN\n");
   return;
 }  
 
 void end_transaction(){
+  log_delete();
   printf("END\n");
   return;
 }  
 
 void commit_transaction(){
+  log_update();
   printf("COMMIT\n");
   return;
 }  
 
 void rollback_transaction(){
+  rollback_db();
+  log_delete();
   printf("ROLLBACK\n");
   return;
 }  

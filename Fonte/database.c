@@ -14,6 +14,10 @@
   #include "misc.h"
 #endif
 
+#ifndef FSQLCOMMANDS
+  #include "sqlcommands.h"
+#endif
+
 char connectDB(char *db_name) {
 	FILE *DB;
 	int i;
@@ -36,6 +40,11 @@ char connectDB(char *db_name) {
     	strcat(directory, vec_directory[i]); 			// atualiza o diretorio do banco que esta conectado
     	strcpylower(connected.db_directory, directory);
     	fclose(DB);
+
+      // Restaura o banco conectado ao seu estado consistente mais recente
+      rollback_db();
+      log_delete();
+
     	return SUCCESS;
     }
   }

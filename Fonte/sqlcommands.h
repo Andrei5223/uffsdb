@@ -141,9 +141,20 @@ int verifyFieldName(char **, int );
 int verifyFK(char *, char *);
 
 /*
+  Para cada nome de tabela armazenada no log.dat daquele banco, restaura o arquivo de dados dela ao seu tamanho registrado no log.dat
+*/
+void rollback_db();
+
+/*
+  Deleta o arquivo log.dat
+*/
+void log_delete();
+
+/*
   Lê fs_object.dat do banco para identificar as tabelas existentes
-  Para cada tabela existente escreve num log a posição de fim de arquivo dos dados daquela tabela
+  Para cada tabela existente escreve no log.dat o nome e tamanho do arquivo dos dados daquela tabela
     Se o log nao existe, cria um
+    Se o arquivo de dados da tabela não existe, ele grava 0 no log.dat.
 */
 void log_update();
 
@@ -151,22 +162,20 @@ void log_update();
   Inicia uma transação
   Executa log_update
 */
-int begin_transaction();
+void begin_transaction();
 
 /*
-  Finaliza a transação corrente
-  Deleta o log
+  Executa log_delete()
 */
-int end_transaction();
+void end_transaction();
 
 /*
-  Executa log_update
+  Executa log_update()
 */
-int commit_transaction();
+void commit_transaction();
 
 /*
-  Executa na inicialização do SGBD, para todos os bancos existentes
-  Finaliza a transação corrente (se existir)
-  Restaura os .dat das tabelas para as posições salvas no log
+  Executa rollback_db()
+  Executa log_delete()
 */
-int rollback_transaction();
+void rollback_transaction();

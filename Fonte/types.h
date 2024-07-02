@@ -22,6 +22,11 @@ typedef struct tp_table{ // Estrutura usada para carregar fs_schema.dat
     struct tp_table *next;          // Encadeamento para o próximo campo.
 }tp_table;
 
+struct log_entry { // Estrutura usada para carregar log.dat
+    char nomeArquivo[TAMANHO_NOME_ARQUIVO]; // Nome do arquivo
+    long tamanhoArquivo;            // Tamanho do arquivo
+};
+
 typedef struct column{ // Estrutura utilizada para inserir em uma tabela, excluir uma tupla e retornar valores de uma página.
     char tipoCampo;                     // Tipo do Campo.
     char nomeCampo[TAMANHO_NOME_CAMPO]; //Nome do Campo.
