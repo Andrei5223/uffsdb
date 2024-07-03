@@ -30,6 +30,7 @@ extern FILE * yyin;
 extern FILE* outFile_p;
 
 int inside_sql_command = 0; // Adicionando a variável para rastrear comandos SQL
+int in_transaction = 0; // Adicionando variável para rastrear transações
 
 %}
 
@@ -239,28 +240,49 @@ create_index: CREATE INDEX ON {setMode(OP_CREATE_INDEX);} table parentesis_open 
 atributo: OBJECT {setColumnBtreeCreate(yytext);};
 
 begin_transaction: BEGIN_TRANSACTION {
-    begin_transaction(); 
+    if(in_transaction == 1){
+        printf("already in transaction.\n");
+    } else{
+        begin_transaction(); 
+        in_transaction = 1;
+    }
     inside_sql_command = 0;
     GLOBAL_PARSER.consoleFlag = 1;
     return 0;
 };
 
 commit_transaction: COMMIT_TRANSACTION{
-    commit_transaction();
+    if(in_transaction == 0){
+        printf("not in transaction.\n");
+    }
+    else{
+        commit_transaction();
+    }
     inside_sql_command = 0;
     GLOBAL_PARSER.consoleFlag = 1;
     return 0;
 };  
 
 rollback_transaction: ROLLBACK_TRANSACTION{
-    rollback_transaction();
+    if(in_transaction == 0){
+        printf("not in transaction.\n");
+    }
+    else{
+        rollback_transaction();
+    }
     inside_sql_command = 0;
     GLOBAL_PARSER.consoleFlag = 1;
     return 0;
 };
 
 end_transaction: END_TRANSACTION{
-    end_transaction();
+    if(in_transaction == 0){
+        printf("not in transaction.\n");
+    }
+    else{
+        end_transaction();
+        in_transaction = 0;
+    }
     inside_sql_command = 0;
     GLOBAL_PARSER.consoleFlag = 1;
     return 0;
