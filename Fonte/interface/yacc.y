@@ -55,7 +55,7 @@ start: insert | select | create_table | create_database | drop_table | drop_data
      | table_attr | list_tables | connection | exit_program | semicolon {inside_sql_command = 0; GLOBAL_PARSER.consoleFlag = 1; return 0;}
      | help_pls | list_databases | clear | contributors | create_index | begin_transaction
      | commit_transaction | end_transaction | rollback_transaction |
-     | qualquer_coisa | /*epsilon*/;
+     | qualquer_coisa;
 
 /*--------------------------------------------------*/
 /**************** GENERAL FUNCTIONS *****************/
@@ -269,6 +269,7 @@ rollback_transaction: ROLLBACK_TRANSACTION{
     }
     else{
         rollback_transaction();
+        in_transaction = 0;
     }
     inside_sql_command = 0;
     GLOBAL_PARSER.consoleFlag = 1;
